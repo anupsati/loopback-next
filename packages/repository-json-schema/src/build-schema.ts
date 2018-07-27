@@ -36,27 +36,47 @@ export function getJsonSchema(ctor: Function): JSONSchema {
  * Gets the wrapper function of primitives string, number, and boolean
  * @param type Name of type
  */
-export function stringTypeToWrapper(type: string): Function {
-  type = type.toLowerCase();
-  let wrapper;
-  switch (type) {
-    case 'number': {
-      wrapper = Number;
-      break;
+export function stringTypeToWrapper(type: string | Function): Function {
+  if (typeof type === 'function') {
+    return type;
+  } else {
+    type = type.toLowerCase();
+    let wrapper;
+    switch (type) {
+      case 'number': {
+        wrapper = Number;
+        break;
+      }
+      case 'string': {
+        wrapper = String;
+        break;
+      }
+      case 'boolean': {
+        wrapper = Boolean;
+        break;
+      }
+      case 'array': {
+        wrapper = Array;
+        break;
+      }
+      case 'object': {
+        wrapper = Object;
+        break;
+      }
+      case 'date': {
+        wrapper = Date;
+        break;
+      }
+      case 'buffer': {
+        wrapper = Buffer;
+        break;
+      }
+      default: {
+        throw new Error('Unsupported type: ' + type);
+      }
     }
-    case 'string': {
-      wrapper = String;
-      break;
-    }
-    case 'boolean': {
-      wrapper = Boolean;
-      break;
-    }
-    default: {
-      throw new Error('Unsupported type: ' + type);
-    }
+    return wrapper;
   }
-  return wrapper;
 }
 
 /**
@@ -64,9 +84,14 @@ export function stringTypeToWrapper(type: string): Function {
  * @param ctor Constructor
  */
 export function isComplexType(ctor: Function) {
-  return !([String, Number, Boolean, Object, Function] as Function[]).includes(
-    ctor,
-  );
+  return !([
+    String,
+    Number,
+    Boolean,
+    Object,
+    Function,
+    Array,
+  ] as Function[]).includes(ctor);
 }
 
 /**
@@ -74,30 +99,32 @@ export function isComplexType(ctor: Function) {
  * @param meta
  */
 export function metaToJsonProperty(meta: PropertyDefinition): JSONSchema {
-  let ctor = meta.type as string | Function;
-  let def: JSONSchema = {};
+  // tslint:disable-next-line:no-any
+  let ctor = meta.type as string | Function | Array<string | Function>;
+  const propDef: JSONSchema = {};
+  let result: JSONSchema;
 
-  // errors out if @property.array() is not used on a property of array
-  if (ctor === Array) {
-    throw new Error('type is defined as an array');
-  }
-
-  if (typeof ctor === 'string') {
-    ctor = stringTypeToWrapper(ctor);
-  }
-
-  const propDef = isComplexType(ctor)
-    ? {$ref: `#/definitions/${ctor.name}`}
-    : {type: <JSONSchemaTypeName>ctor.name.toLowerCase()};
-
-  if (meta.array) {
-    def.type = 'array';
-    def.items = propDef;
+  // NOTE(shimks): this area can be tweaked so that array of multiple types
+  // can be supported
+  if (Array.isArray(ctor)) {
+    if (ctor.length !== 1) {
+      throw new Error('type is not an array of length 1');
+    }
+    ctor = ctor[0];
+    result = {type: 'array', items: propDef};
   } else {
-    Object.assign(def, propDef);
+    result = propDef;
   }
 
-  return def;
+  ctor = stringTypeToWrapper(ctor);
+
+  if (isComplexType(ctor)) {
+    Object.assign(propDef, {$ref: `#/definitions/${ctor.name}`});
+  } else {
+    Object.assign(propDef, {type: <JSONSchemaTypeName>ctor.name.toLowerCase()});
+  }
+
+  return result;
 }
 
 // NOTE(shimks) no metadata for: union, optional, nested array, any, enum,
@@ -129,17 +156,34 @@ export function modelToJsonSchema(ctor: Function): JSONSchema {
     }
 
     result.properties = result.properties || {};
-    result.properties[p] = result.properties[p] || {};
 
-    const metaProperty = meta.properties[p];
-    const metaType = metaProperty.type;
+    const metaProperty = Object.assign({}, meta.properties[p]);
+
+    // clone property metadata and convert types represented by strings into the
+    // appropriate wrapper type
+    if (Array.isArray(metaProperty.type)) {
+      metaProperty.type = metaProperty.type.map(type =>
+        stringTypeToWrapper(type),
+      );
+    } else {
+      metaProperty.type = stringTypeToWrapper(metaProperty.type as
+        | Function
+        | string);
+    }
 
     // populating "properties" key
     result.properties[p] = metaToJsonProperty(metaProperty);
 
     // populating JSON Schema 'definitions'
-    if (typeof metaType === 'function' && isComplexType(metaType)) {
-      const propSchema = getJsonSchema(metaType);
+    let metaType = metaProperty.type;
+    if (
+      (typeof metaType === 'function' && isComplexType(metaType)) ||
+      (Array.isArray(metaType) && isComplexType(metaType[0]))
+    ) {
+      if (Array.isArray(metaType)) {
+        metaType = metaType[0];
+      }
+      const propSchema = getJsonSchema(metaType as Function);
 
       if (propSchema && Object.keys(propSchema).length > 0) {
         result.definitions = result.definitions || {};
@@ -152,7 +196,7 @@ export function modelToJsonSchema(ctor: Function): JSONSchema {
           delete propSchema.definitions;
         }
 
-        result.definitions[metaType.name] = propSchema;
+        result.definitions[(metaType as Function).name] = propSchema;
       }
     }
 

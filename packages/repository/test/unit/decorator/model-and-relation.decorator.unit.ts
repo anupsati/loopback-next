@@ -181,6 +181,21 @@ describe('model decorator', () => {
     expect(meta.isShipped).to.eql({type: Boolean});
   });
 
+  it('adds explicitly declared array property metadata', () => {
+    @model()
+    class ArrayModel {
+      @property({type: Array})
+      strArr: string[];
+    }
+
+    const meta =
+      MetadataInspector.getAllPropertyMetadata(
+        MODEL_PROPERTIES_KEY,
+        ArrayModel.prototype,
+      ) || /* istanbul ignore next */ {};
+    expect(meta.strArr).to.eql({type: Array});
+  });
+
   it('adds embedsOne metadata', () => {
     const meta =
       MetadataInspector.getAllPropertyMetadata(
@@ -303,7 +318,7 @@ describe('model decorator', () => {
             MODEL_PROPERTIES_KEY,
             TestModel.prototype,
           ) || /* istanbul ignore next */ {};
-        expect(meta.items).to.eql({type: Product, array: true});
+        expect(meta.items).to.eql({type: [Product]});
       });
 
       it('throws when @property.array is used on a non-array property', () => {

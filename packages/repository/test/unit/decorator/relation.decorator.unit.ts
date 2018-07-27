@@ -58,8 +58,7 @@ describe('relation decorator', () => {
         keyTo: 'addressBookId',
       });
       expect(jugglerMeta).to.eql({
-        type: Address,
-        array: true,
+        type: [Address],
       });
     });
 
@@ -92,8 +91,7 @@ describe('relation decorator', () => {
         keyTo: 'someForeignKey',
       });
       expect(jugglerMeta).to.eql({
-        type: Address,
-        array: true,
+        type: [Address],
       });
     });
 

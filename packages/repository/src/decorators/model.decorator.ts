@@ -121,9 +121,10 @@ export namespace property {
         throw new Error(ERR_PROP_NOT_ARRAY);
       } else {
         property(
-          Object.assign({array: true}, definition, {
-            type: itemType,
-          }),
+          Object.assign(
+            {type: [itemType]} as Partial<PropertyDefinition>,
+            definition,
+          ),
         )(target, propertyName);
       }
     };

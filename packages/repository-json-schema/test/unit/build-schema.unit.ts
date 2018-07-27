@@ -8,10 +8,14 @@ import {isComplexType, stringTypeToWrapper, metaToJsonProperty} from '../..';
 
 describe('build-schema', () => {
   describe('stringTypeToWrapper', () => {
-    it('returns respective wrapper of number, string and boolean', () => {
+    it('returns respective wrapper of number, string, boolean, array, buffer, date and object', () => {
       expect(stringTypeToWrapper('string')).to.eql(String);
       expect(stringTypeToWrapper('number')).to.eql(Number);
       expect(stringTypeToWrapper('boolean')).to.eql(Boolean);
+      expect(stringTypeToWrapper('array')).to.eql(Array);
+      expect(stringTypeToWrapper('buffer')).to.eql(Buffer);
+      expect(stringTypeToWrapper('date')).to.eql(Date);
+      expect(stringTypeToWrapper('object')).to.eql(Object);
     });
 
     it('errors out if other types are given', () => {
@@ -20,9 +24,6 @@ describe('build-schema', () => {
       }).to.throw(/Unsupported type/);
       expect(() => {
         stringTypeToWrapper('function');
-      }).to.throw(/Unsupported type/);
-      expect(() => {
-        stringTypeToWrapper('object');
       }).to.throw(/Unsupported type/);
     });
   });
@@ -34,6 +35,7 @@ describe('build-schema', () => {
       expect(isComplexType(Boolean)).to.eql(false);
       expect(isComplexType(Object)).to.eql(false);
       expect(isComplexType(Function)).to.eql(false);
+      expect(isComplexType(Array)).to.eql(false);
     });
 
     it('returns true if any other wrappers are passed in', () => {
@@ -43,9 +45,15 @@ describe('build-schema', () => {
   });
 
   describe('metaToJsonSchema', () => {
-    it('errors out if "type" property is Array', () => {
-      expect(() => metaToJsonProperty({type: Array})).to.throw(
-        /type is defined as an array/,
+    it('errors out if "type" property is an empty array', () => {
+      expect(() => metaToJsonProperty({type: []})).to.throw(
+        /type is not an array of length 1/,
+      );
+    });
+
+    it('errors out if "type" property is an array of length > 1', () => {
+      expect(() => metaToJsonProperty({type: [Number, String]})).to.throw(
+        /type is not an array of length 1/,
       );
     });
 
@@ -61,6 +69,12 @@ describe('build-schema', () => {
       });
     });
 
+    it('converts arrays', () => {
+      expect(metaToJsonProperty({type: Array})).to.eql({
+        type: 'array',
+      });
+    });
+
     it('converts complex types', () => {
       class CustomType {}
       expect(metaToJsonProperty({type: CustomType})).to.eql({
@@ -69,7 +83,7 @@ describe('build-schema', () => {
     });
 
     it('converts primitive arrays', () => {
-      expect(metaToJsonProperty({array: true, type: Number})).to.eql({
+      expect(metaToJsonProperty({type: [Number]})).to.eql({
         type: 'array',
         items: {type: 'number'},
       });
@@ -77,7 +91,7 @@ describe('build-schema', () => {
 
     it('converts arrays of custom types', () => {
       class CustomType {}
-      expect(metaToJsonProperty({array: true, type: CustomType})).to.eql({
+      expect(metaToJsonProperty({type: [CustomType]})).to.eql({
         type: 'array',
         items: {$ref: '#/definitions/CustomType'},
       });

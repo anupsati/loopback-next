@@ -204,7 +204,7 @@ module.exports = class ModelGenerator extends ArtifactGenerator {
     // Set up types for Templating
     const TS_TYPES = ['string', 'number', 'object', 'boolean', 'any'];
     const NON_TS_TYPES = ['geopoint', 'date'];
-    Object.entries(this.artifactInfo.properties).forEach(([key, val]) => {
+    Object.values(this.artifactInfo.properties).forEach(val => {
       // Default tsType is the type property
       val.tsType = val.type;
 
@@ -213,9 +213,9 @@ module.exports = class ModelGenerator extends ArtifactGenerator {
         if (TS_TYPES.includes(val.arrayType)) {
           val.tsType = `${val.arrayType}[]`;
         } else if (val.type === 'buffer') {
-          val.tsType = `Buffer[]`;
+          val.tsType = 'Buffer[]';
         } else {
-          val.tsType = `string[]`;
+          val.tsType = 'string[]';
         }
       } else if (val.type === 'buffer') {
         val.tsType = 'Buffer';
@@ -235,7 +235,8 @@ module.exports = class ModelGenerator extends ArtifactGenerator {
       // Convert Type to include '' for template
       val.type = `'${val.type}'`;
       if (val.arrayType) {
-        val.arrayType = `'${val.arrayType}'`;
+        val.type = `['${val.arrayType}']`;
+        delete val.arrayType;
       }
 
       // If required is false, we can delete it as that's the default assumption

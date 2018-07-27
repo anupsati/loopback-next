@@ -70,8 +70,7 @@ describe('Repository', () => {
               type: Number,
             },
             colours: {
-              array: true,
-              type: Colour,
+              type: [Colour],
             },
           },
           settings: new Map(),
