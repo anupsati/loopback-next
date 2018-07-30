@@ -25,7 +25,7 @@
     "test": "lb-mocha \"DIST/test/*/**/*.js\"",
     "test:dev": "lb-mocha --allow-console-logs DIST/test/**/*.js && npm run posttest",
     "verify": "npm pack && tar xf loopback-todo*.tgz && tree package && npm run clean",
-    "prestart": "npm run build",
+
     "start": "node ."
   },
   "repository": {

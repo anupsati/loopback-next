@@ -8,6 +8,13 @@ import {ApplicationConfig} from '@loopback/core';
 import {RestServer} from '@loopback/rest';
 
 export async function main(options?: ApplicationConfig) {
+  // IBM Cloud app port is set on process.env.PORT
+  if (!options) {
+    options = {rest: {port: process.env.PORT}};
+  } else {
+    if (!options.rest) options.rest = {};
+    options.rest.port = process.env.PORT || options.rest.port;
+  }
   const app = new TodoListApplication(options);
   await app.boot();
   await app.start();
