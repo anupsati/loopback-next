@@ -96,7 +96,7 @@ module.exports = class extends BaseGenerator {
   install() {
     if (this.shouldExit()) return false;
     this.destinationRoot(this.outDir);
-    super.install();
+    return super.install();
   }
 
   end() {
