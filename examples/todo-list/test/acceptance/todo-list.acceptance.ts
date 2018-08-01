@@ -81,16 +81,6 @@ describe('Application', () => {
     }
   });
 
-  it('deletes all todoLists', async () => {
-    await givenTodoListInstance();
-    await givenTodoListInstance({title: 'so many things to do wow'});
-    await client
-      .del('/todo-lists')
-      .send()
-      .expect(200);
-    expect(await todoListRepo.find()).to.be.empty();
-  });
-
   it('gets a todoList by ID', async () => {
     const todoList = await givenTodoListInstance();
     const result = await client
